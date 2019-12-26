@@ -1,0 +1,8 @@
+out/
+models/
+*.log
+*.out
+*.err
+*.txt
+*.png
+*.jpg
