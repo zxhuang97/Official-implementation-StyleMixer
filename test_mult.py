@@ -24,9 +24,8 @@ def test_transform(size, crop):
     return transform
 
 
-def style_transfer(network, content, style, alpha=1.0,patch_size=5,num_cluster=10, loc_weight=0.0):
-    #return network(content, style)
-    return network.multi_transfer(content, style, alpha=alpha, patch_size=patch_size, num_cluster=num_cluster, loc_weight=loc_weight)
+def style_transfer(network, content, style, alpha=1.0, num_cluster=10, loc_weight=0.0):
+    return network.multi_transfer(content, style, alpha=alpha, num_cluster=num_cluster, loc_weight=loc_weight)
 
 parser = argparse.ArgumentParser()
 # Basic options
@@ -56,10 +55,9 @@ parser.add_argument('--style_dir', type=str,default='input/style',
                     help='Directory path to a batch of style images')
 parser.add_argument('--style_dir2', type=str,default='input/style',
                     help='Directory path to a batch of style images')
-parser.add_argument('--mw',type=str, default='/public/zixuhuang3/styleNet_backup/checkpoint2/')
-parser.add_argument('--vgg', type=str, default='./models/vgg_normalised.pth')
-parser.add_argument('--vgg_finetune', type=str, default='/public/zixuhuang3/styleNet_backup/weight/finetune_vgg.pth.tar')
+parser.add_argument('--mw',type=str, default='./checkpoint/')
 
+parser.add_argument('--vgg', type=str, default='./checkpoint/vgg_normalised.pth')
 # Additional options
 parser.add_argument('--content_size', type=int, default=512,
                     help='New (minimum) size for the content image, \
@@ -71,7 +69,7 @@ parser.add_argument('--crop', default=False,  #add --crop, then config[crop=True
                     help='do center crop to create squared image')
 parser.add_argument('--save_ext', default='.jpg',
                     help='The extension name of the output image')
-parser.add_argument('--output', type=str, default='/public/zixuhuang3/styleNet_backup/output/',
+parser.add_argument('--output', type=str, default='./sample/',
                     help='Directory to save the output image(s)')
 
 # Advanced options
@@ -87,10 +85,6 @@ config['output'] += config['name']
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #device = torch.device("cpu")
 
-# Either --content or --contentDir should be given.
-assert (config['content'] or config['content_dir'])
-# Either --style or --styleDir should be given.
-assert (config['style'] or config['style_dir'])
 
 if config['content']:
     content_paths = [config['content']]
@@ -127,9 +121,8 @@ for content_path in content_paths:
     content = content_tf(Image.open(content_path).convert('RGB'))
     content = content.to(device).unsqueeze(0)
     with torch.no_grad():
-        #output = network(content,styles[0])
-        output = style_transfer(network, content, styles,
-                                 alpha = config['alpha'], patch_size = config['p'], num_cluster = config['c'], loc_weight = config['loc_weight'])
+        output = style_transfer(network, content, styles, alpha = config['alpha'],
+            num_cluster = config['c'], loc_weight = config['loc_weight'])
     output = output.cpu()
     output_name = '{:s}/{:s}{:s}'.format(
         out, splitext(basename(content_path))[0],

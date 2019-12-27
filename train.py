@@ -24,44 +24,42 @@ parser.add_argument('--num',type=int,default=1)
 parser.add_argument('--mode',type=str,default='add')
 parser.add_argument('--bandwidth',type=int,default=1)
 parser.add_argument('--reshuffle', action='store_true', default=False)
-parser.add_argument('--use_iden', action='store_true', default=False)
-parser.add_argument('--use_cx',action='store_true', default=False)
 
 parser.add_argument('--lr', type=float, default=1e-4)
 parser.add_argument('--lr_decay', type=float, default=1e-4)
 parser.add_argument('--max_iter', type=int, default=80000)
-parser.add_argument('--batch_size', type=int, default=5)
+parser.add_argument('--batch_size', type=int, default=6)
 
 parser.add_argument('--style_weight', type=float, default=3.0)
 parser.add_argument('--content_weight', type=float, default=3.0)
 parser.add_argument('--identity_weight', type=float, default=1.0)
 parser.add_argument('--tv_weight',type=float,default=0.0)
-parser.add_argument('--context_weight', type=float, default=3.0)
+parser.add_argument('--cx_weight', type=float, default=3.0)
 
 parser.add_argument('--n_threads', type=int, default=4)
 parser.add_argument('--save_model_interval', type=int, default=40000)
 parser.add_argument('--save_img_interval',default=300)
 
 #Basic options
-parser.add_argument('--content_dir', type=str, required=False, default='/public/zixuhuang3/coco', \
+parser.add_argument('--content_dir', type=str, required=False, default='./coco', \
                     help='Directory path to a batch of content images')
-parser.add_argument('--style_dir', type=str, required=False, default='/public/zixuhuang3/wikiart', \
+parser.add_argument('--style_dir', type=str, required=False, default='./wikiart', \
                     help='Directory path to a batch of style images')
-parser.add_argument('--vgg', type=str, default='./models/vgg_normalised.pth')
+parser.add_argument('--vgg', type=str, default='./checkpoint/vgg_normalised.pth')
 
 # training options
-parser.add_argument('--sample_dir',default='/home/bsft16/zixuhuang3/styleNet2/out/',
+parser.add_argument('--sample_dir',default='./out/',
                     help='Directory to save transfer sample')
-parser.add_argument('--save_dir', default='/public/zixuhuang3/styleNet_backup/checkpoint2/',
+parser.add_argument('--save_dir', default='./checkpoint2/',
                     help='Directory to save the model')
-parser.add_argument('--log_dir', default='/public/zixuhuang3/styleNet_backup/logs2/',
+parser.add_argument('--log_dir', default='./logs/',
                     help='Directory to save the log')
-
-config = vars(parser.parse_args())
+args = parser.parse_args()
+args.use_cx = True if args.cx_weight > 0 else False
+args.use_iden = True if args.iden_weight > 0 else False
+config = vars(args)
 exp_name, config = preparation(config)
 print(exp_name)
-os.system("nvidia-smi")
-print(torch.cuda.is_available())
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 writer = SummaryWriter(log_dir=config['log_dir'])
 
@@ -118,18 +116,15 @@ for i in range(config['max_iter']):
     loss_i =config['identity_weight'] * loss_i
     loss_c = config['content_weight'] * loss_c
     loss_s = config['style_weight'] * loss_s
-    loss_cx = config['context_weight'] * loss_cx
+    loss_cx = config['cx_weight'] * loss_cx
     loss_tv = config['tv_weight'] * loss_tv
     loss = loss_i + loss_c + loss_s +loss_cx + loss_tv
-    if i%200==0:  writer.add_scalar('total_loss',loss.item(),i+1)
-
+    if i%200==0:  
+    	writer.add_scalar('total_loss',loss.item(),i+1)
+    	print("iter %d "%i,loss.item())
 
     loss.backward()
-    if i%1==0:
-        optimizer.step()
 
-    if(i%200==0):
-        print("iter %d "%i,loss.item())
     if(i%config['save_img_interval']==0):
         d = res.data[0].to(torch.device('cpu'))
         img = content_images.data[0].to(torch.device('cpu'))

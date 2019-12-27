@@ -137,7 +137,7 @@ class Net(nn.Module):
         result += (loss.total_variation(cs),)
         return result
 
-    def multi_transfer(self,content, styles, alpha=0.8,patch_size=5,num_cluster=8, loc_weight=1.0):
+    def multi_transfer(self,content, styles, alpha=0.8, num_cluster=8, loc_weight=1.0):
         print(self.amplifier.scale)
         cont_feats = self.encode_with_intermediate(content)
         styles_feats = [self.encode_with_intermediate(style) for style in styles]

@@ -70,10 +70,7 @@ def styleSwap(cont_feats, style_feats, patch_size=5, stride=1):
     content_pad = nn.ReflectionPad2d(padding)
     net = content_pad(cont_feats)
 
-    net = F.conv2d(
-        net,
-        torch.div(style_kernels, kernels_norm + 1e-7),
-        stride=stride)
+    net = F.conv2d(net, torch.div(style_kernels, kernels_norm + 1e-7),stride=stride)
     # normalized for fair comparison between location
     # net = net.div_(cont_norm.view(1, 1, H, W))
 
