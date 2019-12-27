@@ -31,12 +31,12 @@ python3 main.py --content_dir path_to_coco --style_dir path_to_wikiart
 ## Citation
 If you find this project useful for your research, please use the following BibTeX entry.
 
-@article {10.1111:cgf.13853,
-journal = {Computer Graphics Forum},
-title = {{Style Mixer: Semantic-aware Multi-Style Transfer Network}},
-author = {HUANG, Zixuan and 张, 景淮 and LIAO, Jing},
-year = {2019},
-publisher = {The Eurographics Association and John Wiley & Sons Ltd.},
-ISSN = {1467-8659},
-DOI = {10.1111/cgf.13853}
-}
+    @article {10.1111:cgf.13853,
+      journal = {Computer Graphics Forum},
+      title = {{Style Mixer: Semantic-aware Multi-Style Transfer Network}},
+      author = {HUANG, Zixuan and 张, 景淮 and LIAO, Jing},
+      year = {2019},
+      publisher = {The Eurographics Association and John Wiley & Sons Ltd.},
+      ISSN = {1467-8659},
+      DOI = {10.1111/cgf.13853}
+    }
