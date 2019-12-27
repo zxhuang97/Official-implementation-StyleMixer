@@ -2,7 +2,7 @@
 A semantic-aware multi-style transfer network that automatically incorporates multiple styles based on the regional semantics.
 ![](teaser1.png)
 > [**Style Mixer: Semantic-aware Multi-Style Transfer Network**](http://arxiv.org/abs/1904.07850),            
-> Xingyi Zhou, Dequan Wang, Philipp Kr&auml;henb&uuml;hl,        
+> Zixuan HUANG*, Jinghuai Zhang*, Jing Liao,        
 > *arXiv technical report ([arXiv 1910.13093](https://arxiv.org/abs/1910.13093))*   
 
 
