@@ -18,7 +18,7 @@ sh checkpoint/download_models.sh
 ~~~
 
 ### Testing
-You can find 10 pairs of images in folder *input*. 5 for multi-style transfer and 5 for single-style transfer. To run the predefined samples, please use the following command, with task being s1 ... s5 or m1 ... m5.
+You can find 10 pairs of images in folder *input*. 5 for multi-style transfer and 5 for single-style transfer. To run the predefined samples, please use the following command, with task being s1 ... s5 or m1 ... m5. 
 ~~~
 python3 test_mult.py --name styleMixer_bw1_style3.00_cont3.00_iden1.00_cx3.00_1 --pre_def task
 ~~~
@@ -34,11 +34,10 @@ python3 main.py --content_dir path_to_coco --style_dir path_to_wikiart
 ~~~
 ## Citation
 If you find this project useful for your research, please use the following BibTeX entry.
-
     @article {10.1111:cgf.13853,
       journal = {Computer Graphics Forum},
       title = {{Style Mixer: Semantic-aware Multi-Style Transfer Network}},
-      author = {HUANG, Zixuan and 张, 景淮 and LIAO, Jing},
+      author = {HUANG, Zixuan and ZHANG, Jinghuai and LIAO, Jing},
       year = {2019},
       publisher = {The Eurographics Association and John Wiley & Sons Ltd.},
       ISSN = {1467-8659},
