@@ -14,13 +14,17 @@ content regions based on semantic matching, and then seamlessly combines multipl
 ## Get started
 Firstly, download the pretrained model by running
 ~~~
-sh models/download_models.sh
+sh checkpoint/download_models.sh
 ~~~
 
 ### Testing
-You can find 10 pairs of images in folder *input*. 5 for multi-style transfer and 5 for single-style transfer. For multi-style transfer, please use comma to separate different style references.
+You can find 10 pairs of images in folder *input*. 5 for multi-style transfer and 5 for single-style transfer. To run the predefined samples, please use the following command, with task being s1 ... s5 or m1 ... m5.
 ~~~
-python3 test_mult.py --name pretrain --content path_to_content_image --style path_to_style1,path_to_style_2...
+python3 test_mult.py --name styleMixer_bw1_style3.00_cont3.00_iden1.00_cx3.00_1 --pre_def task
+~~~
+ For multi-style transfer, please use comma to separate different style references.
+~~~
+python3 test_mult.py --name styleMixer_bw1_style3.00_cont3.00_iden1.00_cx3.00_1 --content path_to_content_image --style path_to_style1,path_to_style_2...
 ~~~
 
 ### Training

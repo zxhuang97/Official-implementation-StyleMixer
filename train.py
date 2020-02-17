@@ -18,11 +18,13 @@ Image.MAX_IMAGE_PIXELS = None  # Disable DecompressionBombError
 ImageFile.LOAD_TRUNCATED_IMAGES = True  # Disable OSError: image file is truncated
 
 parser = argparse.ArgumentParser()
-#parameters
 
+#parameters
 parser.add_argument('--num',type=int,default=1)
 parser.add_argument('--mode',type=str,default='add')
 parser.add_argument('--bandwidth',type=int,default=1)
+parser.add_argument('--p_size',type=int,default=3)
+
 parser.add_argument('--reshuffle', action='store_true', default=False)
 
 parser.add_argument('--lr', type=float, default=1e-4)
@@ -48,15 +50,15 @@ parser.add_argument('--style_dir', type=str, required=False, default='./wikiart'
 parser.add_argument('--vgg', type=str, default='./checkpoint/vgg_normalised.pth')
 
 # training options
-parser.add_argument('--sample_dir',default='./out/',
+parser.add_argument('--sample_dir',default='./sample/',
                     help='Directory to save transfer sample')
-parser.add_argument('--save_dir', default='./checkpoint2/',
+parser.add_argument('--save_dir', default='./checkpoint/',
                     help='Directory to save the model')
 parser.add_argument('--log_dir', default='./logs/',
                     help='Directory to save the log')
 args = parser.parse_args()
 args.use_cx = True if args.cx_weight > 0 else False
-args.use_iden = True if args.iden_weight > 0 else False
+args.use_iden = True if args.identity_weight > 0 else False
 config = vars(args)
 exp_name, config = preparation(config)
 print(exp_name)
@@ -84,13 +86,13 @@ style_iter = iter(data.DataLoader(
     sampler=InfiniteSamplerWrapper(style_dataset),
     num_workers=config['n_threads']))
 
-def adjust_learning_rate(optimizer, iteration_count):
-    """Imitating the original implementation"""
-    lr = config['lr'] / (1.0 + config['lr_decay'] * iteration_count)
-    for param_group in optimizer.param_groups:
-        param_group['lr'] = lr
-    return lr
-optimizer = torch.optim.Adam(network.parameters(), lr=config['lr'])
+# def adjust_learning_rate(optimizer, iteration_count):
+#     """Imitating the original implementation"""
+#     lr = config['lr'] / (1.0 + config['lr_decay'] * iteration_count)
+#     for param_group in optimizer.param_groups:
+#         param_group['lr'] = lr
+#     return lr
+optimizer = torch.optim.Adam(network.parameters(), lr=config['lr'], weight_decay=config['lr_decay'])
 start_iter=0
 
 for name, param in network.named_parameters():
@@ -98,13 +100,13 @@ for name, param in network.named_parameters():
         print(name)
 for i in range(config['max_iter']):
     optimizer.zero_grad()
-    crt_lr=adjust_learning_rate(optimizer, iteration_count=(i+start_iter))
+    # crt_lr=adjust_learning_rate(optimizer, iteration_count=(i+start_iter))
     content_images = next(content_iter).to(device)
     style_images = next(style_iter).to(device)
     
     res, loss_c, loss_s, loss_i, loss_cx, loss_tv = network(content_images, style_images)
 
-    if i%200==0:
+    if i%100==0:
         writer.add_scalar('loss_content', loss_c.item(), i + 1)
         writer.add_scalar('loss_style', loss_s.item(), i + 1)  
         writer.add_scalar('loss_identity', loss_i.item(), i + 1)
@@ -119,11 +121,12 @@ for i in range(config['max_iter']):
     loss_cx = config['cx_weight'] * loss_cx
     loss_tv = config['tv_weight'] * loss_tv
     loss = loss_i + loss_c + loss_s +loss_cx + loss_tv
-    if i%200==0:  
+    if i%100==0:  
     	writer.add_scalar('total_loss',loss.item(),i+1)
     	print("iter %d "%i,loss.item())
 
     loss.backward()
+    optimizer.step()
 
     if(i%config['save_img_interval']==0):
         d = res.data[0].to(torch.device('cpu'))

@@ -15,11 +15,12 @@ def preparation(config):
         item for item in [
         'styleMixer',
         'bw%d' % config['bandwidth'],
+        'p_%d'
         'reshuf' if config['reshuffle'] else None,        
         'style%2.2f' % config['style_weight'],
         'cont%2.2f' % config['content_weight'],
         'iden%2.2f' % config['identity_weight'] if config['use_iden'] else None,
-        'cx%2.2f' % config['context_weight'] if config['use_cx'] else  None,
+        'cx%2.2f' % config['cx_weight'] if config['use_cx'] else  None,
         '%d' % config['num']
         ] if item is not None])
 
@@ -31,12 +32,10 @@ def preparation(config):
         os.mkdir(config['save_dir'])
     if not os.path.exists(config['log_dir']):
         os.mkdir(config['log_dir'])
-    if not os.path.exists(config['log_dir']):
-        os.mkdir(config['log_dir'])
-
+    if not os.path.exists(config['sample_dir']):
+        os.mkdir(config['sample_dir'])
 
     return name, config
-
 
 def train_transform():
     transform_list = [
@@ -56,6 +55,7 @@ def InfiniteSampler(n):
             np.random.seed()
             order = np.random.permutation(n)
             i = 0
+
 def MyFlip(image):
     out=image
     if random.random()<0.5:

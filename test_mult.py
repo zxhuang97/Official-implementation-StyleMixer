@@ -24,7 +24,7 @@ def test_transform(size, crop):
     return transform
 
 
-def style_transfer(network, content, style, alpha=1.0, num_cluster=10, loc_weight=0.0):
+def style_transfer(network, content, style, alpha=0.5, num_cluster=10, loc_weight=0.0):
     return network.multi_transfer(content, style, alpha=alpha, num_cluster=num_cluster, loc_weight=loc_weight)
 
 parser = argparse.ArgumentParser()
@@ -32,17 +32,17 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--net',type=str,default='nonlocal')
 parser.add_argument('--use_ada', action='store_true', default=False)
 parser.add_argument('--bandwidth',type=int,default=1)
-parser.add_argument('--alpha', type=float, default=0.8,
+parser.add_argument('--alpha', type=float, default=1,
                     help='The weight that controls the degree of \
                              stylization. Should be between 0 and 1')
-parser.add_argument('--p', type=int, default=5,
-                    help='patch_size')
-parser.add_argument('--c', type=int, default=10,
+parser.add_argument('--p_size', type=int, default=3, help='patch_size')
+parser.add_argument('--c', type=int, default=6,
                     help='num of clusters')
-parser.add_argument('--loc_weight', type=float, default=0.0)
-parser.add_argument('--max_layer', type=int, default=4)
+parser.add_argument('--loc_weight', type=float, default=3)
 parser.add_argument('--name', type=str)
-parser.add_argument('--iter',type=int,default=8)
+parser.add_argument('--iter',type=int, default=8)
+parser.add_argument('--pre_def', type=str,default=None)
+
 parser.add_argument('--content', type=str,
                     help='File path to the content image')
 parser.add_argument('--content_dir', type=str, default='input/content',
@@ -84,18 +84,25 @@ config['output'] += config['name']
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #device = torch.device("cpu")
-
-
-if config['content']:
-    content_paths = [config['content']]
+content_paths, style_paths=[],[]
+if config['pre_def']:
+    samples_path = os.path.join('./input',config['pre_def'])
+    for img in os.listdir(samples_path):
+        if img[0]=='c':
+            content_paths.append(os.path.join(samples_path, img))
+        else:
+            style_paths.append(os.path.join(samples_path, img))
 else:
-    content_paths = [os.path.join(config['content_dir'], f) for f in
-                     os.listdir(config['content_dir'])]
-if config['style']:
-    style_paths = config['style'].split(',')
-else:
-    style_paths = [os.path.join(config['style_dir'], f) for f in
-                   os.listdir(config['style_dir'])]
+    if config['content']:
+        content_paths = [config['content']]
+    else:
+        content_paths = [os.path.join(config['content_dir'], f) for f in
+                         os.listdir(config['content_dir'])]
+    if config['style']:
+        style_paths = config['style'].split(',')
+    else:
+        style_paths = [os.path.join(config['style_dir'], f) for f in
+                       os.listdir(config['style_dir'])]
 
 if not os.path.exists(config['output']):
     os.mkdir(config['output'])
@@ -113,7 +120,7 @@ style_tf = test_transform(config['style_size'], config['crop'])
 styles = [style_tf(Image.open(p).convert('RGB')).to(device) for p in style_paths]
 styles = [style.unsqueeze(0) for style in styles]
 
-out =config['output']
+out = config['output']
 
 for content_path in content_paths:
     # process one content and one style

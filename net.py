@@ -5,6 +5,7 @@ from torch.nn import functional as F
 from Nonlocal import Nonlocal, Fusion
 from kmeans import multi_style_warp
 import loss
+
 class ScaleLayer(nn.Module):
    def __init__(self, init_value=2.0):
        super().__init__()
@@ -59,7 +60,7 @@ class Feature_pyramid(nn.Module):
 arch = [0, 4, 11, 18, 31, 44]
 
 class Net(nn.Module):
-    def __init__(self, bandwidth=1, train=True, vgg='', use_iden=True, use_cx=True, **kwargs):
+    def __init__(self, bandwidth=1, p_size=3, train=True, vgg='', use_iden=True, use_cx=True, **kwargs):
 
         super(Net, self).__init__()
         encoder, decoder = model.get_vgg(vgg)
@@ -74,7 +75,7 @@ class Net(nn.Module):
             self.encoder += [nn.Sequential(*enc_layers[arch[i]:arch[i+1]])]
         self.encoder = nn.ModuleList(self.encoder)
 
-        self.non_local = Nonlocal(512, bandwidth=bandwidth)  
+        self.non_local = Nonlocal(512, bandwidth=bandwidth, p_size=p_size)
         self.reflectPad = nn.ReflectionPad2d((1, 1, 1, 1))
         self.feature_pyramid = Feature_pyramid()
         self.amplifier = ScaleLayer()
@@ -83,7 +84,6 @@ class Net(nn.Module):
 
         # fix the encoder
         for module in self.encoder:
-
             for param in module.parameters():
                 param.requires_grad = False
    
@@ -96,7 +96,7 @@ class Net(nn.Module):
 
     def pair_inference(self, cont_feats, style_feats, hidden_cont_feats, hidden_style_feats, iden=False):
         cs_nonlocal, cs_map = self.non_local(cont_feats[-2], style_feats[-2], hidden_style_feats)
-        cs_fused = self.amplifier(cs_nonlocal) if iden else self.fusion(hidden_cont_feats, cs_nonlocal, cs_map)
+        cs_fused = self.amplifier(cs_nonlocal) if iden else self.fusion(hidden_cont_feats, cs_nonlocal)
         cs =   self.decoder(cs_fused)
         cs_feats = self.encode_with_intermediate(cs)
         return cs, cs_feats
@@ -137,7 +137,7 @@ class Net(nn.Module):
         result += (loss.total_variation(cs),)
         return result
 
-    def multi_transfer(self,content, styles, alpha=0.8, num_cluster=8, loc_weight=1.0):
+    def multi_transfer(self,content, styles, alpha=0.5, num_cluster=8, loc_weight=1.0):
         print(self.amplifier.scale)
         cont_feats = self.encode_with_intermediate(content)
         styles_feats = [self.encode_with_intermediate(style) for style in styles]
@@ -147,8 +147,12 @@ class Net(nn.Module):
 
         cs_maps = [self.non_local(cont_feats[-2], style_feats[-2], hidden_style_feats, isTraining=False)
                                  for style_feats,hidden_style_feats in zip(styles_feats, hidden_styles_feats)]
+        cc_map = self.non_local(cont_feats[-2], cont_feats[-2], hidden_cont_feats, isTraining=True)[0]
+
         cs, conf_maps = multi_style_warp(cont_feats[-2], cs_maps, alpha=alpha, num_cluster=num_cluster, loc_weight=loc_weight)
-        cs_fused = self.fusion(hidden_cont_feats, cs, conf_maps)
+        cs = (1-alpha)*cc_map + alpha*cs
+        print(alpha)
+        cs_fused = self.fusion(hidden_cont_feats, cs)
         result = self.decoder(cs_fused)
         return result
 

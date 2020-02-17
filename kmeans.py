@@ -9,90 +9,6 @@ from torchvision import transforms as T
 from torchvision.utils import save_image
 import random
 
-def extract_PatchesAndNorm(feats, ksize=3, padding=1, stride=1):
-    '''
-    feats = (B,C,H,W), with B being 1
-    core function: torch.nn.Unfold(kernel_size, dilation=1, padding=0, stride=1)
-    return: patches = (num_patch, C, patch_size, patch_size) , kernel_norm = (num_patch, 1, 1, 1)
-    '''
-    B,C,H,W = feats.size()
-    padding = ksize//2
-
-    # => (patch_size * patch_size * C, num_patch)
-    unfold = nn.Unfold(kernel_size=(ksize,ksize), padding=0, stride=stride)
-    content_pad = nn.ReflectionPad2d(padding)
-    feats = content_pad(feats)
-    raw_patches = unfold(feats)
-    raw_patches = torch.squeeze(raw_patches,0)
-
-    kernels_norm = torch.norm(raw_patches, 2, 0, keepdim=True)
-    kernels_norm = kernels_norm.view(-1,1,1,1)
-
-    # => (num_patch, C, patch_size, patch_size)
-    patches = raw_patches.view(C,ksize, ksize,-1)
-    patches = patches.permute(3,0,1,2)                                            
-
-    return patches, kernels_norm
-
-
-def styleSwap(cont_feats, style_feats, patch_size=5, stride=1):
-    '''
-    Both con_feats and style_feats are normalized feature in shape of (B,C,H,W)
-    Return: swapped feature in the same shape of cont_feats
-    '''
-    C, H, W = cont_feats.size()[1:] 
-    style_kernels, kernels_norm = extract_PatchesAndNorm(style_feats, ksize=patch_size)
-    _, cont_norm = extract_PatchesAndNorm(cont_feats, ksize=patch_size, stride=stride)
-
-    ######################################
-    # calculate the normalization factor #
-    ######################################
-    mask = torch.cuda.FloatTensor(H,W).fill_(1)
-    fullmask = torch.cuda.FloatTensor(H + patch_size -1, W + patch_size -1).fill_(0)
-    for x in range(patch_size):
-        for y in range(patch_size):
-            padding = (x, patch_size - x - 1, y, patch_size - y - 1)
-            mask_pad = nn.ConstantPad2d(padding,0)
-            padded_mask = mask_pad(mask)
-            fullmask += padded_mask
-    pad_width = int((patch_size-1) / 2)
-    deconv_norm = fullmask[ pad_width:pad_width+H , pad_width:pad_width+W ]
-    deconv_norm = deconv_norm.view(1,1,H,W)
-    
-    ########################
-    # starting convolution #
-    ########################
-    pad_total = patch_size-1
-    pad_beg = pad_total // 2
-    pad_end = pad_total - pad_beg
-    padding = (pad_beg,pad_end,pad_beg,pad_end)
-
-    content_pad = nn.ReflectionPad2d(padding)
-    net = content_pad(cont_feats)
-
-    net = F.conv2d(net, torch.div(style_kernels, kernels_norm + 1e-7),stride=stride)
-    # normalized for fair comparison between location
-    # net = net.div_(cont_norm.view(1, 1, H, W))
-
-    # Binarize the result by retrieve the max #
-    best_match_ids = torch.argmax(net, dim=1, keepdim=True).cuda()
-    best_match_map = torch.cuda.FloatTensor(1, *net.size()[1:] ).fill_(0)
-    best_match_map.scatter_(1,best_match_ids,1.0)
-
-    best_match_factor =  torch.max(net, dim=1, keepdim=False)[0].cuda()
-    best_match_factor = best_match_factor.view(net.size()[0],-1)#->to vector
-
-    # Find the patch and warping the output #
-    unnormalized_output = F.conv_transpose2d(
-        best_match_map,
-        style_kernels,
-        stride=stride)
-
-    unnormalized_output = unnormalized_output[:,:,pad_beg : H + pad_beg, pad_beg : W+pad_beg]
-    normalized_output = torch.div(unnormalized_output, deconv_norm)
-
-    return normalized_output, best_match_factor
-    #B,C,H,W, B,H*W
 
 def forgy(X, Y, n_clusters):
     _len = len(X)
@@ -146,13 +62,7 @@ def kmeans(X, locMap, n_clusters=5, device=0, tol=1e-4, loc_weight= 1.0):
             selected_loc = torch.index_select(locMap, 0, selected)
             initial_feat[index] = selected_feat.mean(dim=0)
             initial_loc[index] = selected_loc.mean(dim=0)
-
-        # center_shift = torch.sum(torch.sqrt(torch.sum((initial_state - initial_state_pre) ** 2, dim=1)))
  
-        # if center_shift ** 2 < tol:
-        #     break
-    # print(choice_cluster[0])
-
     # H*W
     return choice_cluster
 
@@ -218,63 +128,8 @@ def getLocMap(H,W):
     loc = torch.cat((x,y),dim=0)
     return loc
 
-def multi_style_warp(content, styles, alpha, coding='ada', patch_size=5, num_cluster = 5, loc_weight=0.0):
-    #content,style: B,C,H,W
 
-    if coding=='ada':
-        normalization = adaptive_instance_normalization
-        colorization = adaptive_instance_colorization
-    else:
-        normalization = zca_normalization
-        colorization = zca_colorization
-
-    B, C, H, W=content.size()
-    cont_mean, cont_std, normalized_cont = normalization(content)
-    choice_maps=[]
-
-    for i in range(B):
-        tmp_content = content[i].view(C, H*W)
-        locMap = getLocMap(H,W)
-        choice_map = kmeans(tmp_content, locMap, num_cluster, loc_weight)
-        choice_maps.append(choice_map.unsqueeze(dim=0))
-
-    style_num=len(styles)
-    style_warps=[]
-    style_maps=[]
-    for i in range(style_num):
-        style_mean, style_kernel, normalized_style = normalization(styles[i])
-        style_warp, style_map = styleSwap(normalized_cont, normalized_style, patch_size=patch_size)
-        style_warp = style_warp * alpha + normalized_cont * (1-alpha)
-        style_warp = colorization(style_warp, style_kernel, style_mean)
-
-        style_warps.append(style_warp.view(C, H*W))
-        style_maps.append(style_map)
-
-    #Here we have content B==1
-    mult_swap_feature_map = torch.zeros(C, H*W).type(torch.cuda.FloatTensor)
-    style_alloc_map = torch.zeros(B, H*W).type(torch.cuda.FloatTensor)
-    count=0
-    for i in range(num_cluster):
-        choice_cluster = (choice_maps[0] == i).type(torch.cuda.FloatTensor)
-        score_list = np.zeros((style_num))
-        for j in range(style_num):
-            score = choice_cluster*(style_maps[j])
-            total_score = torch.sum(score)
-            score_list[j] = (total_score)
-        style_id = np.argmax(score_list)
-        count += style_id
-        # if random.random() < 0.5:
-        #     style_id=0
-        # else:
-        #     style_id=1
-        mult_swap_feature_map = mult_swap_feature_map + style_warps[style_id].mul(choice_cluster)
-        style_alloc_map += style_id * choice_cluster
-
-    print(count/num_cluster)
-
-    return mult_swap_feature_map.view(1,C,H,W), style_alloc_map.view(1,1,H,W)
-
-def multi_style_warp(content, feats_map, alpha,  num_cluster = 5, loc_weight=0.0):
+def multi_style_warp(content, feats_map, alpha=0.5, num_cluster=5, loc_weight=0.0):
     #content B,C,H,W
     #style_feats style_num * [1,C,H*,W*]
     #conf_maps [B,1,H,W]
@@ -295,7 +150,7 @@ def multi_style_warp(content, feats_map, alpha,  num_cluster = 5, loc_weight=0.0
     style_maps = []
     for i in range(style_num):
         style_warp, style_map = style_feats[i], conf_maps[i].view(1,-1)
-        # style_warp = style_warp * alpha + normalized_cont * (1-alpha)
+        # style_warp = style_warp * alpha + content * (1-alpha)
         style_warps.append(style_warp.view(C, H*W))
         style_maps.append(style_map)
 
@@ -318,10 +173,6 @@ def multi_style_warp(content, feats_map, alpha,  num_cluster = 5, loc_weight=0.0
             score_list[j] = (total_score)
         style_id = np.argmax(score_list)
         count += style_id
-        # if random.random() < 0.5:
-        #     style_id=0
-        # else:
-        #     style_id=1
         mult_swap_feature_map = mult_swap_feature_map + style_warps[style_id].mul(choice_cluster)
         style_alloc_map += style_maps[style_id] * choice_cluster
 
