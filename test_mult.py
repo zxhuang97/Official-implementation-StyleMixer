@@ -107,7 +107,6 @@ else:
 if not os.path.exists(config['output']):
     os.mkdir(config['output'])
 
-
 network = net.Net(**config)
 network.load_state_dict(torch.load(config['mw']))
 network.eval()
