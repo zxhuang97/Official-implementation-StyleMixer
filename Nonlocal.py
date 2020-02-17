@@ -87,7 +87,7 @@ class Nonlocal(nn.Module):
         feats = content_pad(feats)
         raw_patches = unfold(feats)
 
-        # => （B, num_patch, patch_size * patch_size * C）
+        # => (B, num_patch, patch_size * patch_size * C)
         raw_patches = raw_patches.permute(0,2,1)
    
         return raw_patches

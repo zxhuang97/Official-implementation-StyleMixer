@@ -11,7 +11,9 @@ import model
 import net
 from function import adaptive_instance_normalization
 from function import coral
-
+import numpy as np
+#for Initialization of Kmeans
+np.random.seed(100)
 
 def test_transform(size, crop):
     transform_list = []
@@ -131,7 +133,7 @@ for content_path in content_paths:
             num_cluster = config['c'], loc_weight = config['loc_weight'])
     output = output.cpu()
     output_name = '{:s}/{:s}{:s}'.format(
-        out, splitext(basename(content_path))[0],
+        out, config['pre_def']+'_'+splitext(basename(content_path))[0]+'_stylized',
         config['save_ext']
     )
     print(output_name)
