@@ -28,7 +28,7 @@ python3 test_mult.py --name styleMixer_bw1_style3.00_cont3.00_iden1.00_cx3.00_1 
 ~~~
 
 ### Training
-You need to specify the locations of the datasets.
+To train the model with default setting, all you need is to specify the locations of the datasets. You can also specify the patch size of patch attention module by `p_size`.
 ~~~
 python3 main.py --content_dir path_to_coco --style_dir path_to_wikiart
 ~~~
