@@ -26,8 +26,8 @@ def test_transform(size, crop):
     return transform
 
 
-def style_transfer(network, content, style, alpha=0.5, num_cluster=10, loc_weight=0.0):
-    return network.multi_transfer(content, style, alpha=alpha, num_cluster=num_cluster, loc_weight=loc_weight)
+def style_transfer(network, content, style, device, alpha=0.5, num_cluster=10, loc_weight=0.0):
+    return network.multi_transfer(content, style, device, alpha=alpha, num_cluster=num_cluster, loc_weight=loc_weight)
 
 parser = argparse.ArgumentParser()
 # Basic options
@@ -129,9 +129,12 @@ for content_path in content_paths:
     content = content_tf(Image.open(content_path).convert('RGB'))
     content = content.to(device).unsqueeze(0)
     with torch.no_grad():
-        output = style_transfer(network, content, styles, alpha = config['alpha'],
+        output = style_transfer(network, content, styles, device, alpha = config['alpha'],
             num_cluster = config['c'], loc_weight = config['loc_weight'])
     output = output.cpu()
+    
+    if config['pre_def'] == None:
+        config['pre_def'] = ""
     output_name = '{:s}/{:s}{:s}'.format(
         out, config['pre_def']+'_'+splitext(basename(content_path))[0]+'_stylized',
         config['save_ext']

@@ -137,7 +137,7 @@ class Net(nn.Module):
         result += (loss.total_variation(cs),)
         return result
 
-    def multi_transfer(self,content, styles, alpha=0.5, num_cluster=8, loc_weight=1.0):
+    def multi_transfer(self, content, styles, device, alpha=0.5, num_cluster=8, loc_weight=1.0):
         print(self.amplifier.scale)
         cont_feats = self.encode_with_intermediate(content)
         styles_feats = [self.encode_with_intermediate(style) for style in styles]
@@ -149,7 +149,7 @@ class Net(nn.Module):
                                  for style_feats,hidden_style_feats in zip(styles_feats, hidden_styles_feats)]
         cc_map = self.non_local(cont_feats[-2], cont_feats[-2], hidden_cont_feats, isTraining=True)[0]
 
-        cs, conf_maps = multi_style_warp(cont_feats[-2], cs_maps, alpha=alpha, num_cluster=num_cluster, loc_weight=loc_weight)
+        cs, conf_maps = multi_style_warp(cont_feats[-2], cs_maps, device, alpha=alpha, num_cluster=num_cluster, loc_weight=loc_weight)
         cs = (1-alpha)*cc_map + alpha*cs
         print(alpha)
         cs_fused = self.fusion(hidden_cont_feats, cs)

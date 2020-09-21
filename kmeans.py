@@ -87,7 +87,7 @@ def zca_normalization(features,ty='C',th=0.00001):
     # get covariance matrix
     if(ty=='C'):
         gram = torch.matmul(unbiased_features,unbiased_features.t()).div(features.size()[-1]-1)+\
-            torch.eye(size[1]).type(torch.cuda.FloatTensor)#(C,C)
+            torch.eye(size[1]).type(FloatTensor)#(C,C)
     elif (ty=='S'):
         gram = torch.matmul(unbiased_features,unbiased_features.t()).div(features.size()[-1]-1)
     # svd and demension reduction
@@ -123,13 +123,20 @@ def zca_colorization(whiten_features, colorization_kernel, mean_features):
 
 def getLocMap(H,W):
     index = [i for i in range(H*W)]
-    x = torch.cuda.FloatTensor(index).view(1,H*W)%W
-    y = torch.cuda.FloatTensor(index).view(1,H*W)//W
+    x = FloatTensor(index).view(1,H*W)%W
+    y = FloatTensor(index).view(1,H*W)//W
     loc = torch.cat((x,y),dim=0)
     return loc
 
 
-def multi_style_warp(content, feats_map, alpha=0.5, num_cluster=5, loc_weight=0.0):
+def multi_style_warp(content, feats_map, device, alpha=0.5, num_cluster=5, loc_weight=0.0):
+
+    global FloatTensor
+    if device.type == 'cpu':
+        FloatTensor = torch.FloatTensor
+    else:
+        FloatTensor = torch.cuda.FloatTensor
+
     #content B,C,H,W
     #style_feats style_num * [1,C,H*,W*]
     #conf_maps [B,1,H,W]
@@ -155,12 +162,12 @@ def multi_style_warp(content, feats_map, alpha=0.5, num_cluster=5, loc_weight=0.
         style_maps.append(style_map)
 
     #Here we have content B==1
-    mult_swap_feature_map = torch.zeros(C, H*W).type(torch.cuda.FloatTensor)
-    style_alloc_map = torch.zeros(B, H*W).type(torch.cuda.FloatTensor)
+    mult_swap_feature_map = torch.zeros(C, H*W).type(FloatTensor)
+    style_alloc_map = torch.zeros(B, H*W).type(FloatTensor)
     count=0
 
     for i in range(num_cluster):
-        choice_cluster = (choice_maps[0] == i).type(torch.cuda.FloatTensor)
+        choice_cluster = (choice_maps[0] == i).type(FloatTensor)
         score_list = np.zeros((style_num))
         for j in range(style_num):
             score = choice_cluster*(style_maps[j])
