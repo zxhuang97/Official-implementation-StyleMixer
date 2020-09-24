@@ -2,8 +2,9 @@
 A semantic-aware multi-style transfer network that automatically incorporates multiple styles based on the regional semantics.
 ![](teaser1.png)
 > [**Style Mixer: Semantic-aware Multi-Style Transfer Network**](http://arxiv.org/abs/1904.07850),            
-> Zixuan HUANG*, Jinghuai Zhang*, Jing Liao,        
-> *arXiv technical report ([arXiv 1910.13093](https://arxiv.org/abs/1910.13093))*   
+> Zixuan HUANG*, Jinghuai Zhang*, Jing Liao,    
+> Computer Graphics Forum, ([cgf13853](https://diglib.eg.org/handle/10.1111/cgf13853)),
+> arXiv copy ([arXiv 1910.13093](https://arxiv.org/abs/1910.13093))
 
 
 ## Abstract
@@ -34,6 +35,7 @@ python3 main.py --content_dir path_to_coco --style_dir path_to_wikiart
 ~~~
 ## Citation
 If you find this project useful for your research, please use the following BibTeX entry.
+```
     @article {10.1111:cgf.13853,
       journal = {Computer Graphics Forum},
       title = {{Style Mixer: Semantic-aware Multi-Style Transfer Network}},
@@ -43,3 +45,4 @@ If you find this project useful for your research, please use the following BibT
       ISSN = {1467-8659},
       DOI = {10.1111/cgf.13853}
     }
+```
