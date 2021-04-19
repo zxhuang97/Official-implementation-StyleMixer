@@ -18,6 +18,8 @@ Firstly, download the pretrained model by running
 sh checkpoint/download_models.sh
 ~~~
 
+If you can not download pretrained StyleMixer with aforementioned script, try manually with this link [[Models](https://drive.google.com/drive/folders/1kHhw-sJHuMgaJNotTD9Wxm37epmcbcxD?usp=sharing)]
+
 ### Testing
 You can find 10 pairs of images in folder *input*. 5 for multi-style transfer and 5 for single-style transfer. To run the predefined samples, please use the following command, with task being s1 ... s5 or m1 ... m5. 
 ~~~
